@@ -14,6 +14,7 @@ page 70008 CustomerLedgerAPI
     EntitySetName = 'entitySetName';
     PageType = API;
     SourceTable = "Cust. Ledger Entry";
+    Editable = false;
     //IT Solutions
     // some testing again for git hub
 
