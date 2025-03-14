@@ -76,10 +76,12 @@ page 70008 CustomerLedgerAPI
                 field(dueDate; Rec."Due Date")
                 {
                     Caption = 'Due Date';
+                    //we can filter data on this field
                 }
                 field(pmtDiscountDate; Rec."Pmt. Discount Date")
                 {
                     Caption = 'Pmt. Discount Date';
+                    
                 }
                 field(pmtDiscToleranceDate; Rec."Pmt. Disc. Tolerance Date")
                 {
