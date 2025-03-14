@@ -14,7 +14,8 @@ page 70008 CustomerLedgerAPI
     EntitySetName = 'entitySetName';
     PageType = API;
     SourceTable = "Cust. Ledger Entry";
-    
+    //IT Solutions
+
     layout
     {
         area(Content)
@@ -81,7 +82,7 @@ page 70008 CustomerLedgerAPI
                 field(pmtDiscountDate; Rec."Pmt. Discount Date")
                 {
                     Caption = 'Pmt. Discount Date';
-                    
+
                 }
                 field(pmtDiscToleranceDate; Rec."Pmt. Disc. Tolerance Date")
                 {
