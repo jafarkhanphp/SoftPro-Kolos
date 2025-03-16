@@ -13,6 +13,7 @@ codeunit 60004 MRAEInvoice
     Permissions = TableData 112 = rimd, tabledata 114 = RIMD;
     //Permissions = TableData 112 = rimd;
     // 
+    //Test GIT
 
     //EventSubscriberInstance = Manual;
     trigger OnRun();
