@@ -91,7 +91,7 @@ pageextension 50201 PostedSalesInvoiceList extends "Posted Sales Invoices"
 
                         Message('Selected Record Count Based on Below Filter %1\' + SIHRec.GetFilters(), Cnt);
 
-                        Ok := Confirm('Are you sure want generate E-Invoice for Sales Invoice No. %1' + Rec."No.");
+                        Ok := Confirm('Are you sure want generate Multipal E-Invoice', true, false);
                         if not ok then
                             exit;
 

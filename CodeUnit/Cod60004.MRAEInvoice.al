@@ -280,7 +280,8 @@ codeunit 60004 MRAEInvoice
         client.Send(request, response);
         // Read the response content as json.
         response.Content().ReadAs(responseText);
-        //Message(responseText);
+        Message(responseText);
+        exit;
 
         JSONManagement.InitializeObject(responseText);
         JSONManagement.GetArrayPropertyValueAsStringByName('status', statusStr);
