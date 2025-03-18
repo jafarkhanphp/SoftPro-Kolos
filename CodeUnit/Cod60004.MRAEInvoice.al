@@ -335,12 +335,25 @@ codeunit 60004 MRAEInvoice
                         if InvoiceObj.Get('status', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                             InvoiceStatus := InvoiceStatusToken.AsValue().AsText();
 
+                        // Get invoiceIdentifier
+                        if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
+                            InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
+
+                        //*************** History ********
+                        EInvoiceHistorRecFind.Reset();
+                        if EInvoiceHistorRecFind.FindLast() then
+                            EntryNo := EInvoiceHistorRecFind."Entry No." + 1
+                        else
+                            EntryNo := 1;
+
+                        EInvoiceHistorRec.Init();
+                        EInvoiceHistorRec."Entry No." := EntryNo;
+                        EInvoiceHistorRec."Document No." := InvoiceIdentifier;
+
+                        EInvoiceHistorRec.Insert(true);
+
                         if InvoiceStatus = 'SUCCESS' then begin
                             //Message('Invoice:sucess');
-                            // Get invoiceIdentifier
-                            if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
-                                InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
-
                             // Get invoice irn
                             if InvoiceObj.Get('irn', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                                 irn := InvoiceStatusToken.AsValue().AsText();
@@ -349,19 +362,82 @@ codeunit 60004 MRAEInvoice
                             if InvoiceObj.Get('qrCode', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                                 qrCode := InvoiceStatusToken.AsValue().AsText();
 
-                            Message(irn + ' ' + qrCode);
 
+                            //Request
+                            SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                            //Response
+                            SetResponseText(EInvoiceHistorRec, responseText);
+
+                            EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
+                            EInvoiceHistorRec.Status := true;
+                            EInvoiceHistorRec.Modify(true);
+
+
+                            // E Invoice
+                            if EInvoiceFindRec.FindLast() then
+                                EntryNo := EInvoiceFindRec."Entry No." + 1
+                            else
+                                EntryNo := 1;
+
+                            EInvoiceRec.Init();
+                            EInvoiceRec."Entry No." := EntryNo;
+                            EInvoiceRec."No." := InvoiceIdentifier;
+                            EInvoiceRec.Status := InvoiceStatus;
+                            EInvoiceRec.IRN := irn;
+                            Evaluate(AckDtDt, AckDtStr);
+                            EInvoiceRec.AckDt := AckDtDt;
+                            EInvoiceRec."AckNo." := AckNoStr;
+                            EInvoiceRec.SignedQRCode := qrCode;
+                            //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
+                            EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
+                            EInvoiceRec.Insert(true);
+                            //SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
+
+                            SIHRec.Reset();
+                            SIHRec.SetRange("No.", InvoiceIdentifier); // Apply filter
+                            if SIHRec.FindFirst() then begin
+                                SIHRec.IRN := irn;
+                                SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Accepted;
+                                SIHRec.ErrorText := qrCode;
+                                SIHRec.Modify(True);
+                                Message('E-Invoice Generated Successfully Inv No. %1 and IRN %2', InvoiceIdentifier, irn);
+                            end else begin
+                                Message('Invoice not found.');
+                            end;
                         end else begin
                             //Message('Invoice:Fail');
+                            //Request
+                            SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                            SetResponseText(EInvoiceHistorRec, responseText);
+                            EInvoiceHistorRec.Modify(true);
                             // Get invoice qrCode
                             if InvoiceObj.Get('errorMessages', InvoiceStatusToken) and InvoiceStatusToken.IsValue then begin
                                 errorMessages := InvoiceStatusToken.AsValue().AsText();
-                                Message(errorMessages);
+                                //Message(errorMessages);
+
+
+                                SIHRec.Reset();
+                                SIHRec.SetRange("No.", InvoiceIdentifier); // Apply filter
+                                if SIHRec.FindFirst() then begin
+                                    SIHRec.IRN := irn;
+                                    SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Pending;
+                                    if StrLen(errorMessages) > 1024 then begin
+                                        SIHRec.ErrorText := CopyStr(errorMessages, 1, 1023);
+                                    end else begin
+                                        SIHRec.ErrorText := errorMessages;
+                                    end;
+                                    SIHRec.Modify(True);
+                                    Message(errorMessages);
+                                end else begin
+                                    Message('Invoice not found.');
+                                end;
+
+
+
                             end;
 
                         end;
 
-                        //Message('Invoice: %1, Message: %2', InvoiceIdentifier, errorMessages);
                     end;
                 end;
             end else
@@ -380,16 +456,6 @@ codeunit 60004 MRAEInvoice
 
 
 
-
-        //Message('Header Status: %1', HeaderStatus);
-
-
-
-
-
-
-
-
         JSONManagement.InitializeObject(responseText);
         JSONManagement.GetArrayPropertyValueAsStringByName('status', statusStr);
         JSONManagement.GetArrayPropertyValueAsStringByName('message', messageStr);
@@ -399,11 +465,6 @@ codeunit 60004 MRAEInvoice
 
         // Message('IRN=%1\ QR Code=%2\ Status=%3', IrnStr, SignedQRCodeStr, statusStr);
 
-        if statusStr = 'SUCCESS' then begin
-            Message('Testing');
-        end;
-
-        exit;
 
         //FC 120325
         if SIHRec.FindFirst() then begin //FC

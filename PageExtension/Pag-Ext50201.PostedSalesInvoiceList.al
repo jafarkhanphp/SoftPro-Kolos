@@ -89,7 +89,7 @@ pageextension 50201 PostedSalesInvoiceList extends "Posted Sales Invoices"
                         SIHRec.SetRange(EInvoiceStatus, SIHRec.EInvoiceStatus::Pending);
                         Cnt := SIHRec.Count;
 
-                        //Message('Selected Record Count Based on Below Filter %1\' + SIHRec.GetFilters(), Cnt);
+                        Message('Selected Record Count Based on Below Filter %1\' + SIHRec.GetFilters(), Cnt);
 
                         Ok := Confirm('Are you sure want generate Multipal E-Invoice', true, false);
                         if not ok then
@@ -98,7 +98,7 @@ pageextension 50201 PostedSalesInvoiceList extends "Posted Sales Invoices"
                         if (Rec.IRN = '') and (Rec.EInvoiceStatus = Rec.EInvoiceStatus::Pending) then begin
                             CUGenIRN.GenerateIRNMultiple(SIHRec, 'STD');
                         end else begin
-                            Message('IRN already genrated');
+                            Message('IRN already genrated' + SIHRec."No.");
                         end;
 
                         // SIHRec.Reset();
