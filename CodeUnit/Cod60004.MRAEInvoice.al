@@ -319,7 +319,7 @@ codeunit 60004 MRAEInvoice
 
 
         if HeaderStatus = 'SUCCESS' then begin
-            Message('Testing' + HeaderStatus);
+            //Message('Testing' + HeaderStatus);
             // Retrieve the fiscalisedInvoices as a JsonToken
             if JsonObj.Get('fiscalisedInvoices', FiscalisedInvoicesToken) and FiscalisedInvoicesToken.IsArray then begin
                 // Convert the JsonToken to a JsonArray
@@ -331,31 +331,34 @@ codeunit 60004 MRAEInvoice
                     if InvoiceToken.IsObject then begin
                         InvoiceObj := InvoiceToken.AsObject();
 
-                        // Get invoiceIdentifier
-                        if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
-                            InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
-
                         // Get invoice status
                         if InvoiceObj.Get('status', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                             InvoiceStatus := InvoiceStatusToken.AsValue().AsText();
 
-                        // Get invoice irn
-                        if InvoiceObj.Get('irn', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
-                            irn := InvoiceStatusToken.AsValue().AsText();
-
-                        // Get invoice qrCode
-                        if InvoiceObj.Get('qrCode', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
-                            qrCode := InvoiceStatusToken.AsValue().AsText();
-
-                        // Get invoice qrCode
-                        if InvoiceObj.Get('errorMessages', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
-                            errorMessages := InvoiceStatusToken.AsValue().AsText();
-
-
                         if InvoiceStatus = 'SUCCESS' then begin
-                            Message('Invoice:sucess');
+                            //Message('Invoice:sucess');
+                            // Get invoiceIdentifier
+                            if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
+                                InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
+
+                            // Get invoice irn
+                            if InvoiceObj.Get('irn', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
+                                irn := InvoiceStatusToken.AsValue().AsText();
+
+                            // Get invoice qrCode
+                            if InvoiceObj.Get('qrCode', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
+                                qrCode := InvoiceStatusToken.AsValue().AsText();
+
+                            Message(irn + ' ' + qrCode);
+
                         end else begin
-                            Message('Invoice:Fail');
+                            //Message('Invoice:Fail');
+                            // Get invoice qrCode
+                            if InvoiceObj.Get('errorMessages', InvoiceStatusToken) and InvoiceStatusToken.IsValue then begin
+                                errorMessages := InvoiceStatusToken.AsValue().AsText();
+                                Message(errorMessages);
+                            end;
+
                         end;
 
                         //Message('Invoice: %1, Message: %2', InvoiceIdentifier, errorMessages);
