@@ -20,7 +20,7 @@ table 60004 EInvoiceHistory
         field(4; "EInvoice Type"; Option)
         {
             Caption = 'E-Invoice Type';
-            OptionMembers = " ","Generate E-Invoice","Cancel E-Invoice","Generate Sales Credit Note","Cancel Sales Credit Note";
+            OptionMembers = " ","Generate E-Invoice","Cancel E-Invoice","Generate Sales Credit Note","Cancel Sales Credit Note","Generate Proforma E-Invoice","Cancel Proforma E-Invoice";
             DataClassification = ToBeClassified;
             Editable = false;
         }

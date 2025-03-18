@@ -184,6 +184,170 @@ codeunit 60004 MRAEInvoice
         end;
 
     end;
+////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN ++////////////////////////////////
+
+    procedure GenerateIRN(var SHRec: Record "Sales Header"; invoiceTypeDesc: Code[20]);
+    var
+        //CD: Codeunit "Rest API Codeunit";
+        MraApiRec: Record "Mra Api Setup";
+        EInvoiceFindRec: Record EInvoice;
+        EInvoiceRec: Record EInvoice;
+        contentHeaders: HttpHeaders;
+        JsonPayLoad: Text;
+        request: HttpRequestMessage;
+        url: Text;
+        TokenStr: Text;
+        responseText: Text;
+        httpclient: HttpClient;
+        content: HttpContent;
+        client: HttpClient;
+        response: HttpResponseMessage;
+        JsonResponse: JsonObject;
+        JsonTokeValue: JsonToken;
+        status: Code[20];
+        Irn: Code[150];
+        JSONManagement: Codeunit "JSON Management";
+        statusStr: Text;
+        IrnStr: Text;
+        messageStr: Text;
+        AckDtStr: Text;
+        AckDtDt: DateTime;
+        AckNoStr: Text;
+        SignedQRCodeStr: Text;
+        SignedInvoiceStr: Text;
+        EntryNo: Integer;
+        EInvoiceHistorRec: Record EInvoiceHistory;
+        EInvoiceHistorRecFind: Record EInvoiceHistory;
+
+    begin
+        MraApiRec.Reset();
+        MraApiRec.SetRange("Code", 'EINVOICE');
+        MraApiRec.SetRange(ActiveYN, true);
+        if MraApiRec.FindFirst() then begin
+            MraApiRec.TestField(EbsMraUsername);
+            MraApiRec.TestField(EbsMraPasswor);
+            MraApiRec.TestField(EbsMraId);
+            MraApiRec.TestField(areaCode);
+            MraApiRec.TestField(UrlToken);
+            MraApiRec.TestField(UrlTransmit);
+            MraApiRec.TestField(ThirdPartyUrl);
+            url := MraApiRec.ThirdPartyUrl;
+
+        end else begin
+            Error('MRA Setup API not found with below filter-\' + MraApiRec.GetFilters());
+        end;
+
+        JsonPayLoad := CreateJSONForEInvoice(SHRec, invoiceTypeDesc);
+        //JsonPayLoad := '[{"invoiceCounter":"1","transactionType":"B2C","personType":"VATR","invoiceTypeDesc":"DRN","currency":"MUR","invoiceIdentifier":"test3","invoiceRefIdentifier":"test1","reasonStated":"return of product","previousNoteHash":"prevNote","totalVatAmount":"30","totalAmtWoVatCur":"310.01","totalAmtWoVatMur":"10.1","totalAmtPaid":"6400","invoiceTotal":"6700","discountTotalAmount":"300","dateTimeInvoiceIssued":"20221012 10:40:30","seller":{"name":"Test User","tradeName":"KOLOS","tan":"20157766","brn":"C06017125","businessAddr":"3Port Louis","businessPhoneNo":"","ebsCounterNo":"a1"},"buyer":{"name":"Testing use 2","tan":"20484367","brn":"C08085083","businessAddr":"Quatre Bornes","buyerType":"VATR","nic":""},"itemList":[{"taxCode":"TC01","nature":"GOODS","currency":"MUR","itemNo":"10000","productCodeMra":"pdtCode","productCodeOwn":"pdtOwn","itemDesc":"2","quantity":"3","unitPrice":"20","discount":"0","discountedValue":"10.1","amtWoVatCur":"600","amtWoVatMur":"50","vatAmt":"10","totalPrice":"60"}],"salesTransactions":"CASH"}]';
+        Message('Request\' + JsonPayLoad);
+        //exit; //MC101024 //261224  
+        // Add the payload to the content
+        //content.WriteFrom(JsonPayLoad);
+        content.WriteFrom(JsonPayLoad);
+
+
+        // Retrieve the contentHeaders associated with the content
+        content.GetHeaders(contentHeaders);
+        contentHeaders.Clear();
+        contentHeaders.Add('Content-Type', 'application/json');
+        contentHeaders.Add('Username', MraApiRec.EbsMraUsername);
+        contentHeaders.Add('Ebsmraid', MraApiRec.EbsMraId);
+        contentHeaders.Add('Areacode', Format(MraApiRec.areaCode));
+        contentHeaders.Add('Ebsmrapassword', MraApiRec.EbsMraPasswor);
+        contentHeaders.Add('UrlToken', MraApiRec.UrlToken);
+        contentHeaders.Add('UrlTransmit', MraApiRec.UrlTransmit);
+
+        //client.DefaultRequestHeaders().Add('Authorization', AuthString);
+        request.Content := content;
+        request.SetRequestUri(url);
+        request.Method := 'POST';// 'POST';
+
+        client.Send(request, response);
+        // Read the response content as json.
+        response.Content().ReadAs(responseText);
+        //Message(responseText);
+
+        JSONManagement.InitializeObject(responseText);
+        JSONManagement.GetArrayPropertyValueAsStringByName('status', statusStr);
+        JSONManagement.GetArrayPropertyValueAsStringByName('message', messageStr);
+        JSONManagement.GetArrayPropertyValueAsStringByName('irn', IrnStr);
+        JSONManagement.GetArrayPropertyValueAsStringByName('qrCode', SignedQRCodeStr);
+        // Message('IRN=%1\ QR Code=%2\ Status=%3', IrnStr, SignedQRCodeStr, statusStr);
+        EInvoiceHistorRecFind.Reset();
+        if EInvoiceHistorRecFind.FindLast() then
+            EntryNo := EInvoiceHistorRecFind."Entry No." + 1
+        else
+            EntryNo := 1;
+
+        EInvoiceHistorRec.Init();
+        EInvoiceHistorRec."Entry No." := EntryNo;
+        EInvoiceHistorRec."Document No." := SHRec."No.";
+        //Request Text
+        //Message('JsonPayLoad', JsonPayLoad);
+        //SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+        //Request Text
+        //SetResponseText(EInvoiceHistorRec, responseText);
+
+        EInvoiceHistorRec.Insert(true);
+        //Request
+        SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+        //Response
+        SetResponseText(EInvoiceHistorRec, responseText);
+
+
+
+        EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
+
+        if statusStr = 'SUCCESS' then begin
+            EInvoiceHistorRec.Status := true;
+        end;
+        EInvoiceHistorRec.Modify(true);
+
+
+
+        // Store Success IRN 
+        EntryNo := 0;
+        if statusStr = 'SUCCESS' then begin
+            if EInvoiceFindRec.FindLast() then
+                EntryNo := EInvoiceFindRec."Entry No." + 1
+            else
+                EntryNo := 1;
+            EInvoiceRec.Init();
+            EInvoiceRec."Entry No." := EntryNo;
+            EInvoiceRec."No." := SHRec."No.";
+            EInvoiceRec.Status := statusStr;
+            EInvoiceRec.IRN := IrnStr;
+            Evaluate(AckDtDt, AckDtStr);
+            EInvoiceRec.AckDt := AckDtDt;
+            EInvoiceRec."AckNo." := AckNoStr;
+            EInvoiceRec.SignedQRCode := SignedQRCodeStr;
+            //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
+            EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
+            EInvoiceRec.Insert(true);
+            SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
+
+            SHRec.IRN := IrnStr;
+            SHRec.EInvoiceStatus := SHRec.EInvoiceStatus::Accepted;
+            SHRec.ErrorText := messageStr;
+            //SIHRec."Acknowledgement Date" := AckDtDt;
+            //SIHRec."Acknowledgement No." := AckNoStr;
+            SHRec.Modify(True);
+
+            Message('E-Invoice Generated Successfully Inv No. %1 and IRN %2', SHRec."No.", IrnStr);
+        end else begin
+            SHRec.IRN := IrnStr;
+            SHRec.EInvoiceStatus := SHRec.EInvoiceStatus::Pending;
+            if StrLen(messageStr) > 1024 then begin
+                SHRec.ErrorText := CopyStr(messageStr, 1, 1023);
+            end else begin
+                SHRec.ErrorText := messageStr;
+            end;
+            SHRec.Modify(True);
+            Message(responseText);
+        end;
+
+    end;
+////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN -- ////////////////////////////////
 
 
     procedure GenerateIRNMultiple(var SIHRec: Record "Sales Invoice Header"; invoiceTypeDesc: Code[20]);
@@ -704,6 +868,193 @@ codeunit 60004 MRAEInvoice
         exit(JsonText);
 
     end;
+ //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE ++//////////////////////   
+local procedure CreateJSONForEInvoice(SHRec: Record "Sales Header"; invoiceTypeDesc: Code[20]): Text;
+    var
+        //SILRec: Record "Sales Invoice Line";
+        SLRec: Record "Sales Line";
+        CompRec: Record "Company Information";
+        //StateRec: Record State;
+        CustRec: Record Customer;
+        //DetailedGSTLedgerEntryRec: Record "Detailed GST Ledger Entry";
+        TotItemVal: Decimal;
+        G_TotItemVal: Decimal;
+        StringConversionManagementCU: Codeunit StringConversionManagement;
+
+        G_AssVal: Decimal;
+        G_CgstVal: Decimal;
+        G_SgstVal: Decimal;
+        G_IgstVal: Decimal;
+
+        Cnt: Integer;
+        SellerDtls_Stcd: Code[20];
+        BuyerDtls_Stcd: code[20];
+        TranDtls: JsonObject;
+        JsonData: Text;
+        MainJson: JsonObject;
+        DocDtls: JsonObject;
+        SellerDtls: JsonObject;
+        BuyerDtls: JsonObject;
+        DispDtls: JsonObject;
+        ShipDtls: JsonObject;
+        ItemListArr: JsonArray;
+        ItemList: JsonObject;
+        ValDtls: JsonObject;
+        SellerDtlsPin: Integer;
+        BuyerDtlsPin: Integer;
+        DispDtlsPin: Integer;
+        ShipDtlsPin: Integer;
+        Ln: Integer;
+        ItemNo: Code[20];
+        ItemCode: Integer;
+        //MC18FEB2025
+        JsonObject: JsonObject;
+        Seller, Buyer : JsonObject;
+        ItemArray: JsonArray;
+        Item: JsonObject;
+        JsonText: Text;
+        JsonOutput: OutStream;
+        JsonInput: InStream;
+        TempBlob: Codeunit "Temp Blob";
+        DateTimeString: Text;
+        PostingDateTime: DateTime;
+        BalanceStr: Text;
+    //MC18FEB2025
+    Begin
+        Clear(TranDtls);
+        Clear(DocDtls);
+        Clear(SellerDtls);
+        Clear(BuyerDtls);
+        Clear(DispDtls);
+        Clear(ShipDtls);
+        Clear(ItemListArr);
+        Clear(ItemList);
+        Clear(ValDtls);
+        Clear(TempBlob);
+        ////////// Get Sellr Detl////////
+        SellerDtls_Stcd := '';
+        if CompRec.get() THEN;
+        if CustRec.get(SHRec."Sell-to Customer No.") then;
+        // MC18022025
+        JsonObject.Add('invoiceCounter', '1');
+        JsonObject.Add('transactionType', 'B2C');
+        JsonObject.Add('personType', 'VATR');
+        JsonObject.Add('invoiceTypeDesc', invoiceTypeDesc); //STD
+        JsonObject.Add('currency', 'MUR');
+        JsonObject.Add('invoiceIdentifier', SHRec."No.");
+        JsonObject.Add('invoiceRefIdentifier', '');
+        JsonObject.Add('previousNoteHash', 'prevNote');
+        JsonObject.Add('reasonStated', 'rgeegr');
+        JsonObject.Add('totalVatAmount', SHRec."Amount Including VAT"); //Ma
+        JsonObject.Add('totalAmtWoVatCur', SHRec."Amount");
+        JsonObject.Add('totalAmtWoVatMur', SHRec."Amount");
+        JsonObject.Add('invoiceTotal', SHRec."Amount Including VAT");
+        JsonObject.Add('discountTotalAmount', SHRec."Invoice Discount Amount");
+        JsonObject.Add('totalAmtPaid', SHRec."Amount Including VAT"); //MA08MAR2025
+        PostingDateTime := CreateDateTime(SHRec."Posting Date", 000000T); // Convert Posting Date to DateTime
+        DateTimeString := Format(Date2DMY(SHRec."Posting Date", 3));
+        // for month
+        if Date2DMY(SHRec."Posting Date", 2) <= 9 then begin
+            DateTimeString += '0' + Format(Date2DMY(SHRec."Posting Date", 2));
+        end else begin
+            DateTimeString += Format(Date2DMY(SHRec."Posting Date", 2));
+        end;
+        // for day
+        if Date2DMY(SHRec."Posting Date", 1) <= 9 then begin
+            DateTimeString += '0' + Format(Date2DMY(SHRec."Posting Date", 1));
+        end else begin
+            DateTimeString += Format(Date2DMY(SHRec."Posting Date", 1));
+        end;
+
+        DateTimeString += ' 00:00:00';
+
+        JsonObject.Add('dateTimeInvoiceIssued', DateTimeString);
+
+
+        // Seller Details
+        Seller.Add('name', 'Test User');
+        Seller.Add('tradeName', CompRec.Name);
+        Seller.Add('tan', CompRec.TAN);
+        Seller.Add('brn', CompRec.BRN);
+        Seller.Add('businessAddr', CompRec.Address);
+        Seller.Add('businessPhoneNo', CompRec."Phone No.");
+        Seller.Add('ebsCounterNo', 'a1');
+        JsonObject.Add('seller', Seller);
+
+        // Buyer Details
+        Buyer.Add('name', CustRec.Name);
+        Buyer.Add('tan', CustRec.TAN);
+        Buyer.Add('brn', CustRec.BRN);
+        Buyer.Add('businessAddr', CustRec.Address);
+        Buyer.Add('buyerType', 'VATR');
+        Buyer.Add('nic', '');
+        JsonObject.Add('buyer', Buyer);
+
+        // Loop through Sales Invoice Lines
+        SLRec.SetRange("Document No.", SHRec."No.");
+        SLRec.SetFilter(Quantity, '<>%1', 0);
+        SLRec.SetFilter("No.", '<>%1', '');
+        SLRec.SetFilter("Line Amount", '<>%1', 0);
+        if SLRec.FindSet() then
+            repeat
+                Clear(Item);
+                Item.Add('itemNo', Format(SLRec."Line No."));
+                Item.Add('taxCode', 'TC01');
+                if SLRec.Type = SLRec.Type::Item then begin
+                    Item.Add('nature', 'GOODS');
+
+                end else begin
+                    Item.Add('nature', 'GOODS');
+                end;
+
+                Item.Add('productCodeMra', 'pdtCode');
+                Item.Add('productCodeOwn', 'pdtOwn');
+                Item.Add('itemDesc', SLRec.Description);
+                Item.Add('quantity', Format(SLRec.Quantity));
+
+                BalanceStr := Format((SLRec."Unit Price"));
+                BalanceStr := BalanceStr.Replace(',', '');
+                Item.Add('unitPrice', BalanceStr);
+
+
+                Item.Add('discount', SLRec."Line Discount %"); // Replace with actual discount if applicable
+                Item.Add('discountedValue', SLRec."Line Discount Amount"); //MA08MAR2025
+                BalanceStr := Format((SLRec.Amount));
+                BalanceStr := BalanceStr.Replace(',', '');
+                Item.Add('amtWoVatCur', BalanceStr);
+
+                BalanceStr := Format((SLRec.Amount));
+                BalanceStr := BalanceStr.Replace(',', '');
+                Item.Add('amtWoVatMur', BalanceStr);
+
+                BalanceStr := Format((SLRec."VAT %"));
+                BalanceStr := BalanceStr.Replace(',', '');
+                Item.Add('vatAmt', BalanceStr);
+
+                // Item.Add('vatAmt', Format(SILRec."VAT %", 0, '0.00'));
+                BalanceStr := Format((SLRec."Line Amount"));
+                BalanceStr := BalanceStr.Replace(',', '');
+                Item.Add('totalPrice', BalanceStr);
+
+                ItemArray.Add(Item);
+            until SLRec.Next() = 0;
+
+        JsonObject.Add('itemList', ItemArray);
+        JsonObject.Add('salesTransactions', 'CASH');
+
+        // Convert JSON to Text using InStream
+        Clear(TempBlob);
+        TempBlob.CreateOutStream(JsonOutput);
+        JsonObject.WriteTo(JsonOutput);
+
+        TempBlob.CreateInStream(JsonInput);
+        JsonInput.ReadText(JsonText);
+        JsonText := '[' + JsonText + ']';
+
+        exit(JsonText);
+
+    end;
+ //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE -- //////////////////////   
 
 
     local procedure CreateJSONForEInvoiceMultiple(var SIHRec: Record "Sales Invoice Header"; invoiceTypeDesc: Code[20]): Text;
