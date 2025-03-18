@@ -349,7 +349,6 @@ codeunit 60004 MRAEInvoice
                         EInvoiceHistorRec.Init();
                         EInvoiceHistorRec."Entry No." := EntryNo;
                         EInvoiceHistorRec."Document No." := InvoiceIdentifier;
-
                         EInvoiceHistorRec.Insert(true);
 
                         if InvoiceStatus = 'SUCCESS' then begin
