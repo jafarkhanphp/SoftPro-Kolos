@@ -184,7 +184,7 @@ codeunit 60004 MRAEInvoice
         end;
 
     end;
-////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN ++////////////////////////////////
+    ////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN ++////////////////////////////////
 
     procedure GenerateIRN(var SHRec: Record "Sales Header"; invoiceTypeDesc: Code[20]);
     var
@@ -296,7 +296,7 @@ codeunit 60004 MRAEInvoice
 
 
 
-        EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
+        EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate Proforma E-Invoice";
 
         if statusStr = 'SUCCESS' then begin
             EInvoiceHistorRec.Status := true;
@@ -322,7 +322,7 @@ codeunit 60004 MRAEInvoice
             EInvoiceRec."AckNo." := AckNoStr;
             EInvoiceRec.SignedQRCode := SignedQRCodeStr;
             //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
-            EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
+            EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate Proforma E-Invoice";
             EInvoiceRec.Insert(true);
             SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
 
@@ -347,7 +347,7 @@ codeunit 60004 MRAEInvoice
         end;
 
     end;
-////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN -- ////////////////////////////////
+    ////////////////////////////////MA 18MARCH2025 UNPOSTED SALES INVOICE IRN -- ////////////////////////////////
 
 
     procedure GenerateIRNMultiple(var SIHRec: Record "Sales Invoice Header"; invoiceTypeDesc: Code[20]);
@@ -468,7 +468,8 @@ codeunit 60004 MRAEInvoice
         response.Content().ReadAs(responseText);
         //Message(responseText);
         //exit;
-        JsonText := '{"responseId":"LT17422210125623512287153","responseDateTime":"20250317 18:16:52","requestId":"1803475536","status":"SUCCESS","environment":"TEST","infoMessages":null,"errorMessages":null,"fiscalisedInvoices":[{"invoiceIdentifier":"PSI-0025","irn":"STD28UD-05f09f71-0b28-3ea4-b9fe-6a37ac228b27","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAAB","status":"SUCCESS","warningMessages":null,"errorMessages":null},{"invoiceIdentifier":"PSI-0024","irn":"STD28UD-612c85ce-5e35-3ceb-90a7-2cdefbcfb308","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAACA","status":"SUCCESS","warningMessages":null,"errorMessages":null}]}';
+
+        //JsonText := '{"responseId":"LT17422210125623512287153","responseDateTime":"20250317 18:16:52","requestId":"1803475536","status":"SUCCESS","environment":"TEST","infoMessages":null,"errorMessages":null,"fiscalisedInvoices":[{"invoiceIdentifier":"PSI-0025","irn":"STD28UD-05f09f71-0b28-3ea4-b9fe-6a37ac228b27","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAAB","status":"SUCCESS","warningMessages":null,"errorMessages":null},{"invoiceIdentifier":"PSI-0024","irn":"STD28UD-612c85ce-5e35-3ceb-90a7-2cdefbcfb308","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAACA","status":"SUCCESS","warningMessages":null,"errorMessages":null}]}';
 
         // Parse JSON into JsonObject
         if not JsonObj.ReadFrom(responseText) then
@@ -499,12 +500,26 @@ codeunit 60004 MRAEInvoice
                         if InvoiceObj.Get('status', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                             InvoiceStatus := InvoiceStatusToken.AsValue().AsText();
 
+                        // Get invoiceIdentifier
+                        if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
+                            InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
+
+
+
+                        //*************** History ********
+                        EInvoiceHistorRecFind.Reset();
+                        if EInvoiceHistorRecFind.FindLast() then
+                            EntryNo := EInvoiceHistorRecFind."Entry No." + 1
+                        else
+                            EntryNo := 1;
+
+                        EInvoiceHistorRec.Init();
+                        EInvoiceHistorRec."Entry No." := EntryNo;
+                        EInvoiceHistorRec."Document No." := InvoiceIdentifier;
+                        EInvoiceHistorRec.Insert(true);
+
                         if InvoiceStatus = 'SUCCESS' then begin
                             //Message('Invoice:sucess');
-                            // Get invoiceIdentifier
-                            if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
-                                InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
-
                             // Get invoice irn
                             if InvoiceObj.Get('irn', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                                 irn := InvoiceStatusToken.AsValue().AsText();
@@ -513,24 +528,82 @@ codeunit 60004 MRAEInvoice
                             if InvoiceObj.Get('qrCode', InvoiceStatusToken) and InvoiceStatusToken.IsValue then
                                 qrCode := InvoiceStatusToken.AsValue().AsText();
 
-                            Message(irn + ' ' + qrCode);
 
+                            //Request
+                            SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                            //Response
+                            SetResponseText(EInvoiceHistorRec, responseText);
+
+                            EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
+                            EInvoiceHistorRec.Status := true;
+                            EInvoiceHistorRec.Modify(true);
+
+
+                            // E Invoice
+                            EntryNo := 0;
+                            if EInvoiceFindRec.FindLast() then
+                                EntryNo := EInvoiceFindRec."Entry No." + 1
+                            else
+                                EntryNo := 1;
+
+                            EInvoiceRec.Init();
+                            EInvoiceRec."Entry No." := EntryNo;
+                            EInvoiceRec."No." := InvoiceIdentifier;
+                            EInvoiceRec.Status := InvoiceStatus;
+                            EInvoiceRec.IRN := irn;
+                            Evaluate(AckDtDt, AckDtStr);
+                            EInvoiceRec.AckDt := AckDtDt;
+                            EInvoiceRec."AckNo." := AckNoStr;
+                            EInvoiceRec.SignedQRCode := qrCode;
+                            //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
+                            EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
+                            EInvoiceRec.Insert(true);
+                            //SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
+
+                            SIHRec.Reset();
+                            SIHRec.SetRange("No.", InvoiceIdentifier); // Apply filter
+                            if SIHRec.FindFirst() then begin
+                                SIHRec.IRN := irn;
+                                SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Accepted;
+                                SIHRec.ErrorText := qrCode;
+                                SIHRec.Modify(True);
+                                Message('E-Invoice Generated Successfully Inv No. %1 and IRN %2', InvoiceIdentifier, irn);
+                            end else begin
+                                Message('Invoice not found.');
+                            end;
                         end else begin
                             //Message('Invoice:Fail');
+                            //Request
+                            SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                            SetResponseText(EInvoiceHistorRec, responseText);
+                            EInvoiceHistorRec.Modify(true);
                             // Get invoice qrCode
                             if InvoiceObj.Get('errorMessages', InvoiceStatusToken) and InvoiceStatusToken.IsValue then begin
                                 errorMessages := InvoiceStatusToken.AsValue().AsText();
-                                Message(errorMessages);
+                                //Message(errorMessages);
+
+
+                                SIHRec.Reset();
+                                SIHRec.SetRange("No.", InvoiceIdentifier); // Apply filter
+                                if SIHRec.FindFirst() then begin
+                                    SIHRec.IRN := irn;
+                                    SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Pending;
+                                    if StrLen(errorMessages) > 1024 then begin
+                                        SIHRec.ErrorText := CopyStr(errorMessages, 1, 1023);
+                                    end else begin
+                                        SIHRec.ErrorText := errorMessages;
+                                    end;
+                                    SIHRec.Modify(True);
+                                    Message(errorMessages);
+                                end else begin
+                                    Message('Invoice not found.');
+                                end;
                             end;
-
                         end;
-
-                        //Message('Invoice: %1, Message: %2', InvoiceIdentifier, errorMessages);
                     end;
                 end;
             end else
                 Error('No fiscalised invoices found.');
-
         end else begin
             // Get the header message
             if JsonObj.Get('message', HeaderMessageToken) and HeaderMessageToken.IsValue then
@@ -544,16 +617,6 @@ codeunit 60004 MRAEInvoice
 
 
 
-
-        //Message('Header Status: %1', HeaderStatus);
-
-
-
-
-
-
-
-
         JSONManagement.InitializeObject(responseText);
         JSONManagement.GetArrayPropertyValueAsStringByName('status', statusStr);
         JSONManagement.GetArrayPropertyValueAsStringByName('message', messageStr);
@@ -563,11 +626,6 @@ codeunit 60004 MRAEInvoice
 
         // Message('IRN=%1\ QR Code=%2\ Status=%3', IrnStr, SignedQRCodeStr, statusStr);
 
-        if statusStr = 'SUCCESS' then begin
-            Message('Testing');
-        end;
-
-        exit;
 
         //FC 120325
         if SIHRec.FindFirst() then begin //FC
@@ -648,7 +706,6 @@ codeunit 60004 MRAEInvoice
                 end;
             until SIHRec.Next = 0; //FC
         end; //FC
-
 
     end;
 
@@ -868,8 +925,8 @@ codeunit 60004 MRAEInvoice
         exit(JsonText);
 
     end;
- //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE ++//////////////////////   
-local procedure CreateJSONForEInvoice(SHRec: Record "Sales Header"; invoiceTypeDesc: Code[20]): Text;
+    //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE ++//////////////////////   
+    local procedure CreateJSONForEInvoice(SHRec: Record "Sales Header"; invoiceTypeDesc: Code[20]): Text;
     var
         //SILRec: Record "Sales Invoice Line";
         SLRec: Record "Sales Line";
@@ -1054,7 +1111,7 @@ local procedure CreateJSONForEInvoice(SHRec: Record "Sales Header"; invoiceTypeD
         exit(JsonText);
 
     end;
- //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE -- //////////////////////   
+    //////////////////////////////////// MA 18MARCH2025 UNPOSTED SALES INVOICE -- //////////////////////   
 
 
     local procedure CreateJSONForEInvoiceMultiple(var SIHRec: Record "Sales Invoice Header"; invoiceTypeDesc: Code[20]): Text;

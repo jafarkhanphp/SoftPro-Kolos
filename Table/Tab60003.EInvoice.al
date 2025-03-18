@@ -15,7 +15,9 @@ table 60003 EInvoice
         field(3; "EInvoice Type"; Option)
         {
             Caption = 'E-Invoice Type';
-            OptionMembers = " ","Generate E-Invoice","Cancel E-Invoice","Generate E-WayBill on IRN","Cancel E-WayBill on IRN","Einvoice UnPosted SI";
+            // OptionMembers = " ","Generate E-Invoice","Cancel E-Invoice","Generate E-WayBill on IRN","Cancel E-WayBill on IRN","Einvoice UnPosted SI","Generate Proforma E-Invoice","Cancel Proforma E-Invoice";
+            OptionMembers = " ","Generate E-Invoice","Cancel E-Invoice","Generate Sales Credit Note","Cancel Sales Credit Note","Generate Proforma E-Invoice","Cancel Proforma E-Invoice";
+
             DataClassification = ToBeClassified;
         }
         field(4; "No."; Code[20])
