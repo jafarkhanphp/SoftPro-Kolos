@@ -304,7 +304,8 @@ codeunit 60004 MRAEInvoice
         response.Content().ReadAs(responseText);
         //Message(responseText);
         //exit;
-        JsonText := '{"responseId":"LT17422210125623512287153","responseDateTime":"20250317 18:16:52","requestId":"1803475536","status":"SUCCESS","environment":"TEST","infoMessages":null,"errorMessages":null,"fiscalisedInvoices":[{"invoiceIdentifier":"PSI-0025","irn":"STD28UD-05f09f71-0b28-3ea4-b9fe-6a37ac228b27","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAAB","status":"SUCCESS","warningMessages":null,"errorMessages":null},{"invoiceIdentifier":"PSI-0024","irn":"STD28UD-612c85ce-5e35-3ceb-90a7-2cdefbcfb308","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAACA","status":"SUCCESS","warningMessages":null,"errorMessages":null}]}';
+
+        //JsonText := '{"responseId":"LT17422210125623512287153","responseDateTime":"20250317 18:16:52","requestId":"1803475536","status":"SUCCESS","environment":"TEST","infoMessages":null,"errorMessages":null,"fiscalisedInvoices":[{"invoiceIdentifier":"PSI-0025","irn":"STD28UD-05f09f71-0b28-3ea4-b9fe-6a37ac228b27","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAAB","status":"SUCCESS","warningMessages":null,"errorMessages":null},{"invoiceIdentifier":"PSI-0024","irn":"STD28UD-612c85ce-5e35-3ceb-90a7-2cdefbcfb308","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAACA","status":"SUCCESS","warningMessages":null,"errorMessages":null}]}';
 
         // Parse JSON into JsonObject
         if not JsonObj.ReadFrom(responseText) then
@@ -338,6 +339,8 @@ codeunit 60004 MRAEInvoice
                         // Get invoiceIdentifier
                         if InvoiceObj.Get('invoiceIdentifier', InvoiceIdentifierToken) and InvoiceIdentifierToken.IsValue then
                             InvoiceIdentifier := InvoiceIdentifierToken.AsValue().AsText();
+
+
 
                         //*************** History ********
                         EInvoiceHistorRecFind.Reset();
@@ -373,6 +376,7 @@ codeunit 60004 MRAEInvoice
 
 
                             // E Invoice
+                            EntryNo := 0;
                             if EInvoiceFindRec.FindLast() then
                                 EntryNo := EInvoiceFindRec."Entry No." + 1
                             else
@@ -430,18 +434,12 @@ codeunit 60004 MRAEInvoice
                                 end else begin
                                     Message('Invoice not found.');
                                 end;
-
-
-
                             end;
-
                         end;
-
                     end;
                 end;
             end else
                 Error('No fiscalised invoices found.');
-
         end else begin
             // Get the header message
             if JsonObj.Get('message', HeaderMessageToken) and HeaderMessageToken.IsValue then
@@ -544,7 +542,6 @@ codeunit 60004 MRAEInvoice
                 end;
             until SIHRec.Next = 0; //FC
         end; //FC
-
 
     end;
 
