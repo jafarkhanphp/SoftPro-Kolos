@@ -89,7 +89,7 @@ pageextension 50201 PostedSalesInvoiceList extends "Posted Sales Invoices"
                         SIHRec.SetRange(EInvoiceStatus, SIHRec.EInvoiceStatus::Pending);
                         Cnt := SIHRec.Count;
 
-                        Message('Selected Record Count Based on Below Filter %1\' + SIHRec.GetFilters(), Cnt);
+                        //Message('Selected Record Count Based on Below Filter %1\' + SIHRec.GetFilters(), Cnt);
 
                         Ok := Confirm('Are you sure want generate Multipal E-Invoice', true, false);
                         if not ok then

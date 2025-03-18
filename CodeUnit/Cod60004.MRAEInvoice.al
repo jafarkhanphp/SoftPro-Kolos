@@ -210,6 +210,8 @@ codeunit 60004 MRAEInvoice
         statusStr: Text;
         IrnStr: Text;
         messageStr: Text;
+        MultipalResponse: JsonArray;
+        
         AckDtStr: Text;
         AckDtDt: DateTime;
         AckNoStr: Text;
@@ -219,6 +221,7 @@ codeunit 60004 MRAEInvoice
         EInvoiceHistorRec: Record EInvoiceHistory;
         EInvoiceHistorRecFind: Record EInvoiceHistory;
         SelectedInvoices: Text;
+          JsonObj: JsonObject;
 
     begin
         MraApiRec.Reset();
@@ -280,98 +283,111 @@ codeunit 60004 MRAEInvoice
         client.Send(request, response);
         // Read the response content as json.
         response.Content().ReadAs(responseText);
-        Message(responseText);
-        exit;
+         //Message(responseText);
+
+
+if not JsonObj.ReadFrom(responseText) then
+        Error('Invalid JSON data.');
+
+    
 
         JSONManagement.InitializeObject(responseText);
         JSONManagement.GetArrayPropertyValueAsStringByName('status', statusStr);
         JSONManagement.GetArrayPropertyValueAsStringByName('message', messageStr);
         JSONManagement.GetArrayPropertyValueAsStringByName('irn', IrnStr);
         JSONManagement.GetArrayPropertyValueAsStringByName('qrCode', SignedQRCodeStr);
+        //JSONManagement.GetArrayPropertyValueAsStringByName('fiscalisedInvoices', MultipalRespons);
+
         // Message('IRN=%1\ QR Code=%2\ Status=%3', IrnStr, SignedQRCodeStr, statusStr);
+        
+       if statusStr = 'SUCCESS' then begin
+             Message('Testing');
+        end;
+     
+        exit;
 
-        //FC 120325
-        if SIHRec.FindFirst() then begin //FC
-            repeat //FC
+            //FC 120325
+            if SIHRec.FindFirst() then begin //FC
+                repeat //FC
 
-                //*************** History ********
-                EInvoiceHistorRecFind.Reset();
-                if EInvoiceHistorRecFind.FindLast() then
-                    EntryNo := EInvoiceHistorRecFind."Entry No." + 1
-                else
-                    EntryNo := 1;
-
-                EInvoiceHistorRec.Init();
-                EInvoiceHistorRec."Entry No." := EntryNo;
-                EInvoiceHistorRec."Document No." := SIHRec."No.";
-                //Request Text
-                //Message('JsonPayLoad', JsonPayLoad);
-                //SetRequestText(EInvoiceHistorRec, JsonPayLoad);
-                //Request Text
-                //SetResponseText(EInvoiceHistorRec, responseText);
-
-                EInvoiceHistorRec.Insert(true);
-                //Request
-                SetRequestText(EInvoiceHistorRec, JsonPayLoad);
-                //Response
-                SetResponseText(EInvoiceHistorRec, responseText);
-
-
-
-                EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
-
-                if statusStr = 'SUCCESS' then begin
-                    EInvoiceHistorRec.Status := true;
-                end;
-                EInvoiceHistorRec.Modify(true);
-
-
-
-                // ****** Store Success IRN *******
-                if statusStr = 'SUCCESS' then begin
-                    if EInvoiceFindRec.FindLast() then
-                        EntryNo := EInvoiceFindRec."Entry No." + 1
+                    //*************** History ********
+                    EInvoiceHistorRecFind.Reset();
+                    if EInvoiceHistorRecFind.FindLast() then
+                        EntryNo := EInvoiceHistorRecFind."Entry No." + 1
                     else
                         EntryNo := 1;
 
-                    EInvoiceRec.Init();
-                    EInvoiceRec."Entry No." := EntryNo;
-                    EInvoiceRec."No." := SIHRec."No.";
-                    EInvoiceRec.Status := statusStr;
-                    EInvoiceRec.IRN := IrnStr;
-                    Evaluate(AckDtDt, AckDtStr);
-                    EInvoiceRec.AckDt := AckDtDt;
-                    EInvoiceRec."AckNo." := AckNoStr;
-                    EInvoiceRec.SignedQRCode := SignedQRCodeStr;
-                    //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
-                    EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
-                    EInvoiceRec.Insert(true);
-                    SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
+                    EInvoiceHistorRec.Init();
+                    EInvoiceHistorRec."Entry No." := EntryNo;
+                    EInvoiceHistorRec."Document No." := SIHRec."No.";
+                    //Request Text
+                    //Message('JsonPayLoad', JsonPayLoad);
+                    //SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                    //Request Text
+                    //SetResponseText(EInvoiceHistorRec, responseText);
 
-                    SIHRec.IRN := IrnStr;
-                    SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Accepted;
-                    SIHRec.ErrorText := messageStr;
-                    //SIHRec."Acknowledgement Date" := AckDtDt;
-                    //SIHRec."Acknowledgement No." := AckNoStr;
-                    SIHRec.Modify(True);
+                    EInvoiceHistorRec.Insert(true);
+                    //Request
+                    SetRequestText(EInvoiceHistorRec, JsonPayLoad);
+                    //Response
+                    SetResponseText(EInvoiceHistorRec, responseText);
 
-                    Message('E-Invoice Generated Successfully Inv No. %1 and IRN %2', SIHRec."No.", IrnStr);
-                end else begin
-                    SIHRec.IRN := IrnStr;
-                    SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Pending;
-                    if StrLen(messageStr) > 1024 then begin
-                        SIHRec.ErrorText := CopyStr(messageStr, 1, 1023);
-                    end else begin
-                        SIHRec.ErrorText := messageStr;
+
+
+                    EInvoiceHistorRec."EInvoice Type" := EInvoiceHistorRec."EInvoice Type"::"Generate E-Invoice";
+
+                    if statusStr = 'SUCCESS' then begin
+                        EInvoiceHistorRec.Status := true;
                     end;
-                    SIHRec.Modify(True);
-                    Message(responseText);
-                end;
-            until SIHRec.Next = 0; //FC
-        end; //FC
+                    EInvoiceHistorRec.Modify(true);
 
 
-    end;
+
+                    // ****** Store Success IRN *******
+                    if statusStr = 'SUCCESS' then begin
+                        if EInvoiceFindRec.FindLast() then
+                            EntryNo := EInvoiceFindRec."Entry No." + 1
+                        else
+                            EntryNo := 1;
+
+                        EInvoiceRec.Init();
+                        EInvoiceRec."Entry No." := EntryNo;
+                        EInvoiceRec."No." := SIHRec."No.";
+                        EInvoiceRec.Status := statusStr;
+                        EInvoiceRec.IRN := IrnStr;
+                        Evaluate(AckDtDt, AckDtStr);
+                        EInvoiceRec.AckDt := AckDtDt;
+                        EInvoiceRec."AckNo." := AckNoStr;
+                        EInvoiceRec.SignedQRCode := SignedQRCodeStr;
+                        //EInvoiceRec.SignedInvoice := SignedInvoiceStr;
+                        EInvoiceRec."EInvoice Type" := EInvoiceRec."EInvoice Type"::"Generate E-Invoice";
+                        EInvoiceRec.Insert(true);
+                        SetSignedInvoiceText(EInvoiceRec, SignedInvoiceStr);
+
+                        SIHRec.IRN := IrnStr;
+                        SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Accepted;
+                        SIHRec.ErrorText := messageStr;
+                        //SIHRec."Acknowledgement Date" := AckDtDt;
+                        //SIHRec."Acknowledgement No." := AckNoStr;
+                        SIHRec.Modify(True);
+
+                        Message('E-Invoice Generated Successfully Inv No. %1 and IRN %2', SIHRec."No.", IrnStr);
+                    end else begin
+                        SIHRec.IRN := IrnStr;
+                        SIHRec.EInvoiceStatus := SIHRec.EInvoiceStatus::Pending;
+                        if StrLen(messageStr) > 1024 then begin
+                            SIHRec.ErrorText := CopyStr(messageStr, 1, 1023);
+                        end else begin
+                            SIHRec.ErrorText := messageStr;
+                        end;
+                        SIHRec.Modify(True);
+                        Message(responseText);
+                    end;
+                until SIHRec.Next = 0; //FC
+            end; //FC
+
+
+        end;
 
     procedure SetRequestText(var EInvoiceHistroyRec: Record EInvoiceHistory; RequestText: Text)
     var
