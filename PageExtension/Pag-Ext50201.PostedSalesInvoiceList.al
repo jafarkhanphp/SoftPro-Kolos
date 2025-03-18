@@ -47,20 +47,10 @@ pageextension 50201 PostedSalesInvoiceList extends "Posted Sales Invoices"
                         // CurrPage.SetSelectionFilter(SIHRec);
                         // Message('Selected Record %1', SIHRec.Count);
 
-                        Ok := Confirm('Are you sure want generate E-Invoice for Sales Invoice No. %1' + Rec."No.");
+                        Ok := Confirm('Are you sure want generate E-Invoice for Sales Invoice No. ' + Rec."No.", true, false);
                         if not ok then
                             exit;
 
-                        // SIHRec.Reset();
-                        // // SIHRec.SetFilter(SIHRec."No.", 'PSI-0039');
-                        // SIHRec.SetFilter(SIHRec."No.",Rec."No.");
-                        // if SIHRec.FindFirst() then begin
-                        //     // repeat
-                        //         // Perform necessary operations on each record
-                        //         SIHRec.EInvoiceStatus := Rec.EInvoiceStatus::Pending; // Example update
-                        //         SIHRec.Modify(True);
-                        //     // until SIHRec.Next() = 0;
-                        // end;
 
                         if (Rec.IRN = '') and (Rec.EInvoiceStatus = Rec.EInvoiceStatus::Pending) then begin
                             CUGenIRN.GenerateIRNSingle(Rec, 'STD');

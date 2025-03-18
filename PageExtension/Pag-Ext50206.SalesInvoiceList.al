@@ -52,16 +52,6 @@ pageextension 50206 SalesInvoiceListExt extends "Sales Invoice List"
                         if not ok then
                             exit;
 
-                        // SIHRec.Reset();
-                        // // SIHRec.SetFilter(SIHRec."No.", 'PSI-0039');
-                        // SIHRec.SetFilter(SIHRec."No.",Rec."No.");
-                        // if SIHRec.FindFirst() then begin
-                        //     // repeat
-                        //         // Perform necessary operations on each record
-                        //         SIHRec.EInvoiceStatus := Rec.EInvoiceStatus::Pending; // Example update
-                        //         SIHRec.Modify(True);
-                        //     // until SIHRec.Next() = 0;
-                        // end;
 
                         if (Rec.IRN = '') and (Rec.EInvoiceStatus = Rec.EInvoiceStatus::Pending) then begin
                             CUGenIRN.GenerateIRN(Rec, 'PRF');
@@ -70,7 +60,7 @@ pageextension 50206 SalesInvoiceListExt extends "Sales Invoice List"
                         end;
                     end;
                 }
-                
+
             }
         }
     }
