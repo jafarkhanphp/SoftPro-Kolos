@@ -441,11 +441,8 @@ codeunit 60004 MRAEInvoice
         //JsonPayLoad := CreateJSONForEInvoiceMultiple(SIHRec, invoiceTypeDesc);
         //JsonPayLoad := '[{"invoiceCounter":"1","transactionType":"B2C","personType":"VATR","invoiceTypeDesc":"DRN","currency":"MUR","invoiceIdentifier":"test3","invoiceRefIdentifier":"test1","reasonStated":"return of product","previousNoteHash":"prevNote","totalVatAmount":"30","totalAmtWoVatCur":"310.01","totalAmtWoVatMur":"10.1","totalAmtPaid":"6400","invoiceTotal":"6700","discountTotalAmount":"300","dateTimeInvoiceIssued":"20221012 10:40:30","seller":{"name":"Test User","tradeName":"KOLOS","tan":"20157766","brn":"C06017125","businessAddr":"3Port Louis","businessPhoneNo":"","ebsCounterNo":"a1"},"buyer":{"name":"Testing use 2","tan":"20484367","brn":"C08085083","businessAddr":"Quatre Bornes","buyerType":"VATR","nic":""},"itemList":[{"taxCode":"TC01","nature":"GOODS","currency":"MUR","itemNo":"10000","productCodeMra":"pdtCode","productCodeOwn":"pdtOwn","itemDesc":"2","quantity":"3","unitPrice":"20","discount":"0","discountedValue":"10.1","amtWoVatCur":"600","amtWoVatMur":"50","vatAmt":"10","totalPrice":"60"}],"salesTransactions":"CASH"}]';
         Message('Request\' + JsonPayLoad);
-        //exit; //MC101024 //261224
         // Add the payload to the content
-        //content.WriteFrom(JsonPayLoad);
         content.WriteFrom(JsonPayLoad);
-        //exit;
 
         // Retrieve the contentHeaders associated with the content
         content.GetHeaders(contentHeaders);
@@ -458,7 +455,6 @@ codeunit 60004 MRAEInvoice
         contentHeaders.Add('UrlToken', MraApiRec.UrlToken);
         contentHeaders.Add('UrlTransmit', MraApiRec.UrlTransmit);
 
-        //client.DefaultRequestHeaders().Add('Authorization', AuthString);
         request.Content := content;
         request.SetRequestUri(url);
         request.Method := 'POST';// 'POST';
@@ -469,8 +465,6 @@ codeunit 60004 MRAEInvoice
         //Message(responseText);
         //exit;
 
-        //JsonText := '{"responseId":"LT17422210125623512287153","responseDateTime":"20250317 18:16:52","requestId":"1803475536","status":"SUCCESS","environment":"TEST","infoMessages":null,"errorMessages":null,"fiscalisedInvoices":[{"invoiceIdentifier":"PSI-0025","irn":"STD28UD-05f09f71-0b28-3ea4-b9fe-6a37ac228b27","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAAB","status":"SUCCESS","warningMessages":null,"errorMessages":null},{"invoiceIdentifier":"PSI-0024","irn":"STD28UD-612c85ce-5e35-3ceb-90a7-2cdefbcfb308","qrCode":"iVBORw0KGgoAAAANSUhEUgAAAV4AAAFeAQAAAADlUEq3AAACA","status":"SUCCESS","warningMessages":null,"errorMessages":null}]}';
-
         // Parse JSON into JsonObject
         if not JsonObj.ReadFrom(responseText) then
             Error('Invalid JSON format.');
@@ -480,7 +474,6 @@ codeunit 60004 MRAEInvoice
             HeaderStatus := HeaderStatusToken.AsValue().AsText()
         else
             Error('Header status not found.');
-
 
 
         if HeaderStatus = 'SUCCESS' then begin
