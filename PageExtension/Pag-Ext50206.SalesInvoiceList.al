@@ -48,7 +48,7 @@ pageextension 50206 SalesInvoiceListExt extends "Sales Invoice List"
                         // CurrPage.SetSelectionFilter(SIHRec);
                         // Message('Selected Record %1', SIHRec.Count);
 
-                        Ok := Confirm('Are you sure want generate E-Invoice for Sales Invoice No. %1' + Rec."No.");
+                        Ok := Confirm('Are you sure want generate E-Invoice for Sales Invoice No. ' + Rec."No.", true, false);
                         if not ok then
                             exit;
 
